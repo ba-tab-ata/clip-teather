@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎬 클립극장</title>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+  --text: #e2e8f0; --muted: #94a3b8; --dim: #64748b;
+  --accent: #f59e0b; --accent2: #d97706;
+  --green: #22c55e; --purple: #8b5cf6; --red: #f43f5e;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Noto Sans KR',sans-serif; background:linear-gradient(180deg,var(--bg),#1a1a2e); color:var(--text); min-height:100vh; }
+button,input,select,textarea { font-family:'Noto Sans KR',sans-serif; }
+button { cursor:pointer; }
+
+.header { background:linear-gradient(135deg,#1a0a2e,#16213e 50%,#0f3460); border-bottom:2px solid rgba(245,158,11,.2); position:sticky; top:0; z-index:100; }
+.header-inner { max-width:1100px; margin:0 auto; padding:12px 20px 0; }
+.header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.logo { display:flex; align-items:center; gap:10px; }
+.logo h1 { font-family:'Black Han Sans',sans-serif; font-size:26px; color:var(--accent); letter-spacing:2px; text-shadow:0 0 20px rgba(245,158,11,.25); }
+.stats { font-size:13px; color:var(--muted); display:flex; gap:16px; }
+.stats b { color:var(--accent); }
+.stats .uw b { color:var(--green); }
+.tabs { display:flex; }
+.tab-btn { background:transparent; border:none; border-bottom:3px solid transparent; color:var(--muted); font-weight:400; font-size:14px; padding:10px 18px; transition:all .2s; }
+.tab-btn.active { background:rgba(245,158,11,.08); border-bottom-color:var(--accent); color:var(--accent); font-weight:700; }
+.tab-btn:hover:not(.active) { color:var(--text); }
+
+.main { max-width:1100px; margin:0 auto; padding:20px 20px 60px; }
+
+.setup-banner { background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(245,158,11,.04)); border:1.5px solid rgba(245,158,11,.3); border-radius:14px; padding:20px 24px; margin-bottom:20px; text-align:center; }
+.setup-banner h3 { color:var(--accent); font-size:16px; margin-bottom:8px; }
+.setup-banner p { color:var(--muted); font-size:13px; line-height:1.6; margin-bottom:12px; }
+.setup-banner input { background:var(--bg); border:1px solid var(--bg3); border-radius:8px; color:var(--text); padding:10px 14px; font-size:13px; width:100%; max-width:600px; }
+.setup-banner .sbtn { background:var(--accent); border:none; color:#000; border-radius:8px; padding:10px 24px; font-weight:700; font-size:14px; margin-top:8px; }
+
+.cat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(95px,1fr)); gap:10px; margin-bottom:24px; }
+.cat-card { background:rgba(30,41,59,.5); border:1.5px solid var(--bg3); border-radius:14px; padding:14px 10px; display:flex; flex-direction:column; align-items:center; gap:4px; transition:all .25s; }
+.cat-card:hover { transform:translateY(-3px) scale(1.03); }
+.cat-card.active { border-color:var(--accent); background:rgba(245,158,11,.08); }
+.cat-card .em { font-size:28px; }
+.cat-card .nm { font-weight:700; font-size:14px; }
+.cat-card .ct { font-size:11px; color:var(--dim); }
+
+.dur-bar { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; justify-content:center; }
+.dur-btn { background:var(--bg2); border:1px solid var(--bg3); color:var(--muted); border-radius:20px; padding:5px 14px; font-size:12px; transition:all .2s; }
+.dur-btn.active { background:#06b6d4; color:#fff; border-color:#06b6d4; font-weight:700; }
+
+.clip-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+.clip-card { background:var(--bg2); border:1px solid var(--bg3); border-radius:12px; overflow:hidden; transition:all .2s; }
+.clip-card.watched { opacity:.45; }
+.clip-card .thumb { position:relative; aspect-ratio:16/9; background:var(--bg); cursor:pointer; overflow:hidden; }
+.clip-card .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+.clip-card .thumb .pov { position:absolute; inset:0; background:rgba(0,0,0,.3); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .2s; font-size:40px; }
+.clip-card .thumb:hover .pov { opacity:1; }
+.dbadge { position:absolute; top:4px; right:4px; background:rgba(0,0,0,.82); color:#fff; font-size:11px; padding:3px 7px; border-radius:5px; font-family:monospace; font-weight:700; letter-spacing:.5px; }
+.wbadge { position:absolute; bottom:4px; left:4px; background:rgba(0,0,0,.82); color:var(--green); font-size:10px; padding:2px 6px; border-radius:4px; }
+.clip-card .info { padding:10px 12px; }
+.clip-card .ttl { font-size:13px; font-weight:600; margin-bottom:6px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.4; }
+.clip-card .meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.ctag { font-size:11px; padding:2px 8px; border-radius:20px; }
+.clip-card .acts { margin-left:auto; display:flex; gap:4px; }
+.clip-card .acts button { background:none; border:none; font-size:15px; padding:2px; opacity:.5; transition:opacity .2s; cursor:pointer; }
+.clip-card .acts button:hover { opacity:1; }
+
+.clip-cpt { display:flex; background:var(--bg2); border:1px solid var(--bg3); border-radius:10px; overflow:hidden; transition:all .2s; }
+.clip-cpt:hover { border-color:#475569; }
+.clip-cpt.watched { opacity:.45; }
+.clip-cpt .tsm { width:150px; min-height:85px; flex-shrink:0; background:var(--bg); position:relative; cursor:pointer; }
+.clip-cpt .tsm img { width:100%; height:100%; object-fit:cover; }
+.clip-cpt .info { padding:8px 12px; flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; }
+.clip-cpt .info-row { display:flex; align-items:center; gap:6px; margin-top:4px; }
+.clip-cpt .info-left { display:flex; align-items:center; gap:6px; flex:1; min-width:0; flex-wrap:wrap; }
+.clip-cpt .info-right { display:flex; align-items:center; gap:2px; flex-shrink:0; margin-left:auto; }
+.clip-cpt .info-right button {
+  background:none; border:1px solid transparent; font-size:18px; padding:4px 6px;
+  border-radius:6px; transition:all .15s; cursor:pointer; line-height:1;
+}
+.clip-cpt .info-right button:hover { background:rgba(255,255,255,.08); border-color:#475569; }
+.clip-cpt .info-right .btn-check { opacity:.5; }
+.clip-cpt .info-right .btn-check.on { opacity:1; }
+.clip-cpt .info-right .btn-del { opacity:.35; }
+.clip-cpt .info-right .btn-del:hover { opacity:.8; background:rgba(244,63,94,.12); border-color:rgba(244,63,94,.3); }
+
+.slot-box { background:linear-gradient(180deg,#1a0a2e,#16213e); border:2px solid rgba(245,158,11,.2); border-radius:20px; padding:40px 20px; text-align:center; box-shadow:0 0 60px rgba(245,158,11,.06),inset 0 0 60px rgba(0,0,0,.3); margin-bottom:24px; }
+.slot-title { font-family:'Black Han Sans',sans-serif; font-size:22px; color:var(--accent); margin-bottom:24px; text-shadow:0 0 20px rgba(245,158,11,.25); }
+.slot-display { min-height:200px; display:flex; align-items:center; justify-content:center; margin-bottom:24px; }
+.scard { background:var(--bg); border:2px solid var(--bg3); border-radius:16px; overflow:hidden; max-width:400px; width:100%; transition:all .3s; }
+.scard.spin { border-color:rgba(245,158,11,.5); box-shadow:0 0 30px rgba(245,158,11,.25); animation:pulse .15s infinite alternate; }
+.scard.done { border-color:rgba(34,197,94,.5); box-shadow:0 0 30px rgba(34,197,94,.15); }
+@keyframes pulse { from{transform:scale(1)} to{transform:scale(1.02)} }
+
+.bbtn { border:none; border-radius:12px; padding:14px 36px; font-size:17px; font-family:'Black Han Sans',sans-serif; letter-spacing:2px; transition:all .2s; }
+.bbtn.gold { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; box-shadow:0 4px 20px rgba(245,158,11,.25); }
+.bbtn.grn { background:linear-gradient(135deg,var(--green),#16a34a); color:#fff; box-shadow:0 4px 20px rgba(34,197,94,.25); font-family:'Noto Sans KR',sans-serif; font-weight:700; }
+.bbtn.pur { background:linear-gradient(135deg,var(--purple),#7c3aed); color:#fff; box-shadow:0 4px 20px rgba(139,92,246,.25); }
+.bbtn:disabled { background:var(--bg3); color:var(--muted); box-shadow:none; cursor:not-allowed; }
+
+.stbox { background:linear-gradient(180deg,#1a0a2e,#16213e); border:2px solid rgba(139,92,246,.2); border-radius:20px; padding:40px 24px; text-align:center; box-shadow:0 0 60px rgba(139,92,246,.06),inset 0 0 60px rgba(0,0,0,.3); max-width:500px; margin:0 auto; }
+.stnum { font-size:90px; font-family:'Black Han Sans',sans-serif; min-height:120px; display:flex; align-items:center; justify-content:center; transition:color .3s; }
+.stnum.spin { color:var(--accent); animation:pulse .1s infinite alternate; }
+.stnum.done { color:var(--green); text-shadow:0 0 40px rgba(34,197,94,.25); }
+.stnum.idle { color:var(--bg3); }
+.htags { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
+.htag { background:rgba(139,92,246,.12); color:var(--purple); border-radius:8px; padding:4px 10px; font-family:'Black Han Sans',sans-serif; font-size:15px; }
+
+.aform { background:var(--bg2); border:1px solid var(--bg3); border-radius:16px; padding:20px; margin-bottom:20px; }
+.aform h3 { font-size:16px; margin-bottom:16px; }
+.frow { display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+.finp { background:var(--bg); border:1px solid var(--bg3); border-radius:8px; color:var(--text); padding:10px 12px; font-size:14px; flex:1; min-width:0; }
+.finp::placeholder { color:var(--dim); }
+.fsel { background:var(--bg); border:1px solid var(--bg3); border-radius:8px; color:var(--text); padding:10px 12px; font-size:14px; }
+.fbtn { border:none; border-radius:8px; padding:10px 20px; font-weight:700; font-size:14px; }
+.fbtn.pri { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; }
+.fbtn.sec { background:var(--bg3); color:var(--muted); }
+.errmsg { color:var(--red); font-size:13px; margin-top:4px; }
+.lctrls { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+
+.pov-wrap { position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.92); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
+.pv-inner { width:100%; max-width:900px; }
+.pv-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.pv-ttl { color:var(--accent); font-size:16px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; margin-right:16px; }
+.pv-close { background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.3); color:var(--accent); border-radius:8px; padding:6px 16px; font-size:13px; font-weight:600; }
+.pv-frame { position:relative; padding-bottom:56.25%; border-radius:12px; overflow:hidden; box-shadow:0 0 60px rgba(245,158,11,.12); }
+.pv-frame iframe { position:absolute; inset:0; width:100%; height:100%; border:none; }
+
+.empty { text-align:center; padding:60px 20px; color:var(--dim); }
+.empty .em { font-size:48px; display:block; margin-bottom:12px; }
+.hidden { display:none !important; }
+.lspin { display:inline-block; width:18px; height:18px; border:2px solid var(--bg3); border-top-color:var(--accent); border-radius:50%; animation:sp .6s linear infinite; margin-right:6px; vertical-align:middle; }
+@keyframes sp { to{transform:rotate(360deg)} }
+
+@media(max-width:640px) {
+  .logo h1 { font-size:20px; }
+  .tab-btn { padding:8px 12px; font-size:12px; }
+  .cat-grid { grid-template-columns:repeat(auto-fill,minmax(80px,1fr)); gap:8px; }
+  .clip-grid { grid-template-columns:1fr; }
+  .stnum { font-size:64px; }
+}
+</style>
+</head>
+<body>
+<div class="header"><div class="header-inner">
+  <div class="header-top">
+    <div class="logo"><span style="font-size:28px">🎬</span><h1>클립극장</h1></div>
+    <div class="stats"><span>전체 <b id="st-t">0</b>편</span><span class="uw">안 본 영상 <b id="st-u">0</b>편</span><span id="sync-ind" class="hidden" style="color:var(--accent);font-size:11px"><span class="lspin" style="width:12px;height:12px;border-width:1.5px;margin-right:3px"></span>동기화 중</span></div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-v="theater">🎬 클립극장</button>
+    <button class="tab-btn" data-v="pick">🎰 클립뽑기</button>
+    <button class="tab-btn" data-v="student">🎯 번호뽑기</button>
+    <button class="tab-btn" data-v="manage">⚙️ 관리</button>
+  </div>
+</div></div>
+
+<div class="main">
+  <div class="setup-banner" id="setup">
+    <h3>📋 처음 사용 세팅</h3>
+    <p>구글 스프레드시트와 연결해주세요. 세팅 방법은 함께 제공된 가이드를 참고하세요.</p>
+    <input type="text" id="api-inp" placeholder="Apps Script 웹 앱 URL을 여기에 붙여넣기"><br>
+    <button class="sbtn" onclick="saveUrl()">연결하기</button>
+    <p style="margin-top:12px;font-size:11px;color:var(--dim)">연결 없이 체험 →
+      <button onclick="enterDemo()" style="background:none;border:1px solid var(--bg3);color:var(--muted);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer">데모 모드</button>
+    </p>
+  </div>
+  <div id="v-theater" class="vp"></div>
+  <div id="v-pick" class="vp hidden"></div>
+  <div id="v-student" class="vp hidden"></div>
+  <div id="v-manage" class="vp hidden"></div>
+</div>
+
+<div class="pov-wrap hidden" id="player" onclick="closePlay()">
+  <div class="pv-inner" onclick="event.stopPropagation()">
+    <div class="pv-hdr">
+      <div class="pv-ttl" id="pv-ttl"></div>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+        <a id="pv-yt-link" href="#" target="_blank" style="background:rgba(255,0,0,.2);border:1px solid rgba(255,0,0,.4);color:#f66;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap">▶ YouTube</a>
+        <button class="pv-close" onclick="closePlay()">닫기 ✕</button>
+      </div>
+    </div>
+    <div class="pv-frame"><iframe id="pv-ifr" allow="autoplay; encrypted-media; fullscreen" allowfullscreen referrerpolicy="no-referrer"></iframe></div>
+  </div>
+</div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════╗
+// ║  🎬 클립극장 설정 — 여기만 수정하세요!                  ║
+// ╠══════════════════════════════════════════════════════════╣
+// ║                                                          ║
+// ║  아래 '' 안에 Apps Script 웹 앱 URL을 붙여넣으세요.      ║
+// ║  비워두면 앱에서 직접 입력하는 화면이 나옵니다.          ║
+// ║                                                          ║
+const API_URL = 'https://script.google.com/macros/s/AKfycby5VB733hWuV8QWBSmkVpvgEB_IaX4hUJJDtcwOoKpEIcsi5x1-or6kPVTkLgKvykuD4w/exec';
+// ║                                                          ║
+// ║  예시:                                                   ║
+// ║  const API_URL = 'https://script.google.com/macros/s/AKf...긴문자열.../exec'; ║
+// ║                                                          ║
+// ╚══════════════════════════════════════════════════════════╝
+
+// Sound Effects (Web Audio API)
+const SFX = (() => {
+  let ctx;
+  function getCtx() { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); return ctx; }
+  function tick(pitch) {
+    try {
+      const c = getCtx(), o = c.createOscillator(), g = c.createGain();
+      o.type = 'sine';
+      o.frequency.value = 300 + (pitch || 0) * 40;
+      g.gain.setValueAtTime(0.08, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.08);
+      o.connect(g); g.connect(c.destination);
+      o.start(); o.stop(c.currentTime + 0.08);
+    } catch {}
+  }
+  function win() {
+    try {
+      const c = getCtx();
+      const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
+      notes.forEach((freq, i) => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'sine';
+        o.frequency.value = freq;
+        g.gain.setValueAtTime(0.12, c.currentTime + i * 0.12);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + i * 0.12 + 0.4);
+        o.connect(g); g.connect(c.destination);
+        o.start(c.currentTime + i * 0.12);
+        o.stop(c.currentTime + i * 0.12 + 0.4);
+      });
+    } catch {}
+  }
+  function drumroll() {
+    try {
+      const c = getCtx();
+      for (let i = 0; i < 12; i++) {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'triangle';
+        o.frequency.value = 180 + Math.random() * 60;
+        const t = c.currentTime + i * 0.04;
+        g.gain.setValueAtTime(0.04, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+        o.connect(g); g.connect(c.destination);
+        o.start(t); o.stop(t + 0.05);
+      }
+    } catch {}
+  }
+  return { tick, win, drumroll };
+})();
+
+const CATS=[
+  {id:'animal',name:'동물',emoji:'🐾',color:'#F59E0B'},
+  {id:'touching',name:'감동',emoji:'🥹',color:'#EC4899'},
+  {id:'music',name:'음악',emoji:'🎵',color:'#8B5CF6'},
+  {id:'science',name:'과학',emoji:'🔬',color:'#06B6D4'},
+  {id:'history',name:'역사',emoji:'📜',color:'#D97706'},
+  {id:'sports',name:'스포츠',emoji:'⚽',color:'#10B981'},
+  {id:'art',name:'예술',emoji:'🎨',color:'#F43F5E'},
+  {id:'nature',name:'자연',emoji:'🌿',color:'#22C55E'},
+  {id:'tech',name:'기술',emoji:'🤖',color:'#6366F1'},
+  {id:'fun',name:'재미',emoji:'😂',color:'#F97316'},
+  {id:'etc',name:'기타',emoji:'📦',color:'#78716C'},
+];
+const DURS=[
+  {id:'all',label:'전체 시간',icon:'⏱️'},
+  {id:'short',label:'3분 미만',icon:'⚡',min:0,max:3},
+  {id:'medium',label:'3~5분',icon:'☕',min:3,max:5},
+  {id:'long',label:'5~10분',icon:'🍿',min:5,max:10},
+  {id:'extra',label:'10분+',icon:'🎞️',min:10,max:9999},
+];
+
+let S={clips:[],view:'theater',selCat:null,selDur:'all',apiUrl:API_URL||localStorage.getItem('ct_api')||'',demo:false,loading:false,
+  pCat:null,pDur:'all',pRes:null,pSpin:false,
+  sTotal:parseInt(localStorage.getItem('ct_stotal')||'30'),sRes:null,sSpin:false,sHist:[],sExcl:true,
+  mCat:null,mW:'all'};
+
+function gW(){try{return new Set(JSON.parse(localStorage.getItem('ct_w')||'[]'))}catch{return new Set()}}
+function sW(s){localStorage.setItem('ct_w',JSON.stringify([...s]))}
+function iW(id){return gW().has(id)}
+function tW(id){const w=gW();w.has(id)?w.delete(id):w.add(id);sW(w);renderAll()}
+function uid(){return Math.random().toString(36).slice(2,10)}
+function exVid(u){if(!u)return null;const ps=[/youtube\.com\/watch\?v=([^&\s]+)/,/youtu\.be\/([^?\s]+)/,/youtube\.com\/embed\/([^?\s]+)/,/youtube\.com\/shorts\/([^?\s]+)/];for(const p of ps){const m=u.match(p);if(m)return m[1]}return null}
+function pDur(s){if(!s)return 0;s=String(s).trim();const p=s.split(':').map(Number);if(p.length===2)return p[0]+p[1]/60;if(p.length===3)return p[0]*60+p[1]+p[2]/60;return parseFloat(s)||0}
+function dIcon(s){const m=pDur(s);if(m<=0)return'';if(m<3)return'⚡';if(m<5)return'☕';if(m<10)return'🍿';return'🎞️'}
+function mDur(c,fid){if(fid==='all')return true;const f=DURS.find(d=>d.id===fid);if(!f)return true;const m=pDur(c.duration);if(m<=0)return fid==='all';return m>=f.min&&m<f.max}
+function gC(id){return CATS.find(c=>c.id===id)||CATS[CATS.length-1]}
+function th(vid){return'https://img.youtube.com/vi/'+vid+'/mqdefault.jpg'}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function cById(id){return S.clips.find(c=>c.id===id)}
+
+// API
+// 클립 데이터 정규화 (시트에서 읽어온 값 보정)
+function normClip(c){
+  c.id=String(c.id||'').trim();
+  c.videoId=String(c.videoId||'').trim();
+  c.title=String(c.title||'').trim()||'제목 없음';
+  c.url=String(c.url||'').trim();
+  c.category=String(c.category||'etc').trim().toLowerCase();
+  // duration: Date 객체나 이상한 값 보정
+  var d=c.duration;
+  if(!d||d==='undefined'||d==='null'){c.duration='';return c}
+  d=String(d).trim();
+  // "1899-12-29T..." 같은 깨진 날짜 → 시간 추출 시도
+  if(d.match(/^\d{4}-\d{2}-\d{2}/)){
+    try{var dt=new Date(d);var h=dt.getUTCHours(),m=dt.getUTCMinutes(),s=dt.getUTCSeconds();
+      if(h>0)c.duration=h+':'+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+      else c.duration=m+':'+(s<10?'0':'')+s;
+    }catch{c.duration=''}
+    return c;
+  }
+  c.duration=d;
+  return c;
+}
+// 캐시 키
+const CACHE_KEY='ct_cache';
+function saveCache(clips){try{localStorage.setItem(CACHE_KEY,JSON.stringify(clips))}catch{}}
+function loadCache(){try{return JSON.parse(localStorage.getItem(CACHE_KEY)||'[]').map(normClip)}catch{return[]}}
+
+async function apiGet(){
+  if(!S.apiUrl)return[];
+  try{
+    const r=await fetch(S.apiUrl);
+    const d=await r.json();
+    const clips=(d.clips||[]).map(normClip);
+    saveCache(clips); // 성공하면 캐시 갱신
+    return clips;
+  }catch(e){console.error(e);return null} // null = 네트워크 실패
+}
+
+async function apiPost(p){
+  if(!S.apiUrl||S.demo){demoPost(p);return}
+  // 낙관적 업데이트: 로컬에 먼저 반영
+  if(p.action==='add'){S.clips.unshift(p.clip);saveCache(S.clips);renderAll()}
+  else if(p.action==='addBulk'){S.clips=[...p.clips,...S.clips];saveCache(S.clips);renderAll()}
+  else if(p.action==='delete'){S.clips=S.clips.filter(c=>c.id!==p.id);saveCache(S.clips);renderAll()}
+  // 서버에 전송 (백그라운드)
+  try{
+    document.getElementById('sync-ind').classList.remove('hidden');
+    await fetch(S.apiUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(p),redirect:'follow'});
+    // 서버 동기화 (조용히)
+    const fresh=await apiGet();
+    if(fresh){S.clips=fresh;renderAll()}
+    document.getElementById('sync-ind').classList.add('hidden');
+  }catch(e){console.error(e);document.getElementById('sync-ind').classList.add('hidden')}
+}
+function demoPost(p){
+  if(p.action==='add')S.clips.unshift(p.clip);
+  else if(p.action==='addBulk')S.clips=[...p.clips,...S.clips];
+  else if(p.action==='delete')S.clips=S.clips.filter(c=>c.id!==p.id);
+  saveDC();renderAll();
+}
+function saveDC(){localStorage.setItem('ct_dc',JSON.stringify(S.clips))}
+async function loadClips(){
+  if(S.demo){
+    try{S.clips=JSON.parse(localStorage.getItem('ct_dc')||'[]').map(normClip)}catch{S.clips=[]}
+    renderAll();return;
+  }
+  // 1) 캐시에서 즉시 로드 (0ms)
+  const cached=loadCache();
+  if(cached.length>0){
+    S.clips=cached;
+    S.loading=false;
+    renderAll();
+    // 동기화 표시
+    document.getElementById('sync-ind').classList.remove('hidden');
+  } else {
+    S.loading=true;
+    renderAll();
+  }
+  // 2) 백그라운드에서 시트 동기화
+  const fresh=await apiGet();
+  document.getElementById('sync-ind').classList.add('hidden');
+  if(fresh){
+    S.clips=fresh;
+    S.loading=false;
+    renderAll();
+  } else if(cached.length===0){
+    S.loading=false;
+    renderAll();
+  }
+}
+function saveUrl(){const u=document.getElementById('api-inp').value.trim();if(!u)return;S.apiUrl=u;S.demo=false;localStorage.setItem('ct_api',u);loadClips()}
+function enterDemo(){S.demo=true;S.apiUrl='demo';localStorage.setItem('ct_api','demo');loadClips()}
+function discSheet(){if(!confirm('시트 연결을 해제할까요?'))return;S.apiUrl='';S.demo=false;localStorage.removeItem('ct_api');S.clips=[];renderAll()}
+
+// Player
+let _playingClip=null;
+const isLocal=location.protocol==='file:';
+function playC(c){
+  _playingClip=c;
+  if(isLocal){
+    // 로컬 파일 → 팝업 윈도우로 유튜브 재생 (항상 작동!)
+    const sw=Math.round(screen.width*0.75);
+    const sh=Math.round(sw*9/16)+60;
+    const sl=Math.round((screen.width-sw)/2);
+    const st=Math.round((screen.height-sh)/2);
+    window.open(
+      'https://www.youtube.com/watch?v='+c.videoId,
+      'cliptheater',
+      'width='+sw+',height='+sh+',left='+sl+',top='+st+',toolbar=no,menubar=no,location=no'
+    );
+    return;
+  }
+  // 웹 서버 → 오버레이 임베드
+  document.getElementById('pv-ttl').textContent=c.title;
+  document.getElementById('pv-yt-link').href='https://www.youtube.com/watch?v='+c.videoId;
+  document.getElementById('pv-ifr').style.display='block';
+  document.getElementById('pv-ifr').src='https://www.youtube-nocookie.com/embed/'+c.videoId+'?autoplay=1&rel=0';
+  document.getElementById('player').classList.remove('hidden');
+  document.body.style.overflow='hidden';
+}
+function closePlay(){
+  document.getElementById('pv-ifr').src='';
+  document.getElementById('player').classList.add('hidden');
+  document.body.style.overflow='';_playingClip=null;
+}
+
+// Render helpers
+function rDurBar(cur,fn){return'<div class="dur-bar">'+DURS.map(f=>'<button class="dur-btn'+(cur===f.id?' active':'')+'" onclick="'+fn+"('"+f.id+"')"+'">'+ f.icon+' '+f.label+'</button>').join('')+'</div>'}
+
+function rCard(c,opts={}){
+  const cat=gC(c.category),w=iW(c.id),wc=w?' watched':'';
+  if(opts.compact){
+    return '<div class="clip-cpt'+wc+'"><div class="tsm" onclick="playC(cById(\''+c.id+'\'))"><img src="'+th(c.videoId)+'" onerror="this.style.display=\'none\'">'+(c.duration?'<span class="dbadge">'+esc(c.duration)+'</span>':'')+(w?'<span class="wbadge">시청완료 ✓</span>':'')+'</div><div class="info"><div class="ttl">'+esc(c.title||'제목 없음')+'</div><div class="info-row"><div class="info-left"><span class="ctag" style="background:'+cat.color+'22;color:'+cat.color+'">'+cat.emoji+' '+cat.name+'</span>'+(c.duration?'<span style="font-size:11px;color:var(--dim)">'+dIcon(c.duration)+' '+esc(c.duration)+'</span>':'')+'</div><div class="info-right"><button class="btn-check'+(w?' on':'')+'" onclick="tW(\''+c.id+'\')" title="'+(w?'안 본 것으로':'본 것으로')+'">'+(w?'✅':'⬜')+'</button>'+(opts.del?'<button class="btn-del" onclick="delClip(\''+c.id+'\')" title="삭제">🗑️</button>':'')+'</div></div></div></div>';
+  }
+  return '<div class="clip-card'+wc+'"><div class="thumb" onclick="playC(cById(\''+c.id+'\'))"><img src="'+th(c.videoId)+'" onerror="this.style.display=\'none\'"><div class="pov">▶️</div>'+(c.duration?'<span class="dbadge">'+esc(c.duration)+'</span>':'')+(w?'<span class="wbadge">시청완료 ✓</span>':'')+'</div><div class="info"><div class="ttl">'+esc(c.title||'제목 없음')+'</div><div class="meta"><span class="ctag" style="background:'+cat.color+'22;color:'+cat.color+'">'+cat.emoji+' '+cat.name+'</span>'+(c.duration?'<span style="font-size:11px;color:var(--dim);margin-left:4px">'+dIcon(c.duration)+'</span>':'')+'<div class="acts" style="margin-left:auto"><button onclick="tW(\''+c.id+'\')">'+(w?'✅':'⬜')+'</button></div></div></div></div>';
+}
+
+// ===== THEATER =====
+function rTheater(){
+  const el=document.getElementById('v-theater');const{selCat,selDur,clips}=S;const w=gW();
+  let f=clips;if(selCat)f=f.filter(c=>c.category===selCat);f=f.filter(c=>mDur(c,selDur));
+  const uw=f.filter(c=>!w.has(c.id));
+  let h='<div class="cat-grid"><button class="cat-card'+(!selCat?' active':'')+'" onclick="S.selCat=null;renderAll()"><span class="em">🎬</span><span class="nm" style="color:'+(!selCat?'var(--accent)':'var(--muted)')+'">전체</span><span class="ct">'+clips.length+'편</span></button>';
+  CATS.forEach(cat=>{const n=clips.filter(c=>c.category===cat.id).length;const u=clips.filter(c=>c.category===cat.id&&!w.has(c.id)).length;
+    h+='<button class="cat-card'+(selCat===cat.id?' active':'')+'" style="border-color:'+(selCat===cat.id?cat.color:'var(--bg3)')+';background:'+cat.color+'10" onclick="S.selCat=S.selCat===\''+cat.id+'\'?null:\''+cat.id+'\';renderAll()"><span class="em">'+cat.emoji+'</span><span class="nm" style="color:var(--text)">'+cat.name+'</span><span class="ct">'+n+'편'+(u>0?' <span style="color:var(--green)">('+u+')</span>':'')+'</span></button>';
+  });
+  h+='</div>';
+  h+=rDurBar(selDur,'setTD');
+  if(selCat){const cat=gC(selCat);h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><span style="font-size:22px">'+cat.emoji+'</span><span style="font-size:18px;font-weight:700">'+cat.name+'</span><span style="font-size:13px;color:var(--dim)">'+f.length+'편 중 '+uw.length+'편 안 봄</span><button onclick="S.selCat=null;renderAll()" style="background:var(--bg3);border:none;color:var(--muted);border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer">전체보기</button></div>'}
+  if(f.length===0){h+='<div class="empty"><span class="em">📭</span>'+(clips.length===0?'관리 탭에서 클립을 추가해보세요!':'조건에 맞는 클립이 없어요.')+'</div>'}
+  else{h+='<div class="clip-grid">'+f.map(c=>rCard(c)).join('')+'</div>'}
+  el.innerHTML=h;
+}
+function setTD(id){S.selDur=id;renderAll()}
+
+// ===== PICK =====
+function rPick(){
+  const el=document.getElementById('v-pick');const{pCat,pDur,pRes,pSpin,clips}=S;const w=gW();
+  const pool=clips.filter(c=>!w.has(c.id)&&(!pCat||c.category===pCat)&&mDur(c,pDur));
+  let h='<div class="dur-bar" style="margin-bottom:8px"><button class="dur-btn'+(!pCat?' active':'')+'" style="'+(!pCat?'background:var(--accent);color:#000;border-color:var(--accent)':'')+'" onclick="S.pCat=null;S.pRes=null;renderAll()">🎬 전체</button>';
+  CATS.forEach(cat=>{const has=clips.some(c=>c.category===cat.id&&!w.has(c.id));
+    h+='<button class="dur-btn'+(pCat===cat.id?' active':'')+'" style="opacity:'+(has?1:.35)+';'+(pCat===cat.id?'background:'+cat.color+';color:#fff;border-color:'+cat.color:'')+'" onclick="S.pCat=S.pCat===\''+cat.id+'\'?null:\''+cat.id+'\';S.pRes=null;renderAll()">'+cat.emoji+' '+cat.name+'</button>';
+  });
+  h+='</div>';
+  h+=rDurBar(pDur,'setPD');
+  h+='<div class="slot-box"><div class="slot-title">'+(pSpin?'🎰 뽑는 중...':pRes?'🎉 당첨!':'🎬 오늘의 클립은?')+'</div>';
+  h+='<div class="slot-display" id="sdsp">';
+  if(!pRes&&!pSpin)h+='<div style="color:var(--dim);font-size:14px">'+(pool.length===0?'😢 안 본 클립이 없어요!':'안 본 클립 '+pool.length+'편에서 뽑기!')+'</div>';
+  h+='</div>';
+  h+='<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">';
+  h+='<button class="bbtn gold" onclick="spinC()" '+(pSpin||pool.length===0?'disabled':'')+'>'+(pSpin?'뽑는 중...':'🎰 뽑기!')+'</button>';
+  if(pRes&&!pSpin){h+='<button class="bbtn grn" onclick="playC(cById(\''+pRes.id+'\'))">▶ 재생</button>';h+='<button style="background:var(--bg2);border:1px solid var(--bg3);color:var(--muted);border-radius:12px;padding:14px 20px;font-size:13px;cursor:pointer" onclick="tW(\''+pRes.id+'\');S.pRes=null;renderAll()">✅ 봤어요</button>'}
+  h+='</div></div>';
+  el.innerHTML=h;
+  if(pRes&&!pSpin)showSC(pRes,false);
+}
+function setPD(id){S.pDur=id;S.pRes=null;renderAll()}
+function spinC(){
+  const w=gW();const pool=S.clips.filter(c=>!w.has(c.id)&&(!S.pCat||c.category===S.pCat)&&mDur(c,S.pDur));
+  if(!pool.length||S.pSpin)return;S.pSpin=true;S.pRes=null;renderAll();
+  SFX.drumroll();
+  const tot=18+Math.floor(Math.random()*8);
+  let cnt=0;
+  function step(){
+    showSC(pool[Math.floor(Math.random()*pool.length)],true);
+    SFX.tick(cnt);
+    cnt++;
+    if(cnt>=tot){
+      S.pRes=pool[Math.floor(Math.random()*pool.length)];S.pSpin=false;
+      SFX.win();renderAll();
+    } else {
+      const delay=cnt<tot-6?80:cnt<tot-3?160:cnt<tot-1?300:500;
+      setTimeout(step,delay);
+    }
+  }
+  step();
+}
+function showSC(c,sp){
+  const d=document.getElementById('sdsp');if(!d)return;const cat=gC(c.category);
+  d.innerHTML='<div class="scard '+(sp?'spin':'done')+'"><div style="position:relative;aspect-ratio:16/9;background:var(--bg)"><img src="'+th(c.videoId)+'" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">'+(c.duration?'<span class="dbadge">'+esc(c.duration)+'</span>':'')+'</div><div style="padding:10px 14px"><div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.title)+'</div><div style="margin-top:4px"><span class="ctag" style="background:'+cat.color+'22;color:'+cat.color+'">'+cat.emoji+' '+cat.name+'</span>'+(c.duration?'<span style="font-size:11px;color:var(--dim);margin-left:6px">'+dIcon(c.duration)+' '+esc(c.duration)+'</span>':'')+'</div></div></div>';
+}
+
+// ===== STUDENT =====
+function rStudent(){
+  const el=document.getElementById('v-student');const{sTotal,sRes,sSpin,sHist,sExcl}=S;
+  const pool=sExcl?Array.from({length:sTotal},(_,i)=>i+1).filter(n=>!sHist.includes(n)):Array.from({length:sTotal},(_,i)=>i+1);
+  let h='<div class="stbox"><div class="slot-title" style="color:var(--purple);text-shadow:0 0 20px rgba(139,92,246,.25)">'+(sSpin?'🎯 뽑는 중...':'🎯 번호 뽑기')+'</div>';
+  h+='<div style="display:flex;gap:12px;justify-content:center;align-items:center;margin-bottom:24px;flex-wrap:wrap"><label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px">인원수 <input type="number" min="1" max="50" value="'+sTotal+'" onchange="S.sTotal=Math.max(1,Math.min(50,+this.value));localStorage.setItem(\'ct_stotal\',S.sTotal);S.sHist=[];S.sRes=null;renderAll()" style="width:55px;background:var(--bg);border:1px solid var(--bg3);border-radius:8px;color:var(--text);padding:6px 8px;font-family:monospace;font-size:15px;text-align:center">명</label>';
+  h+='<label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" '+(sExcl?'checked':'')+' onchange="S.sExcl=this.checked;renderAll()"> 중복 제외</label></div>';
+  h+='<div class="stnum '+(sSpin?'spin':sRes?'done':'idle')+'">'+(sRes??'?')+'</div>';
+  h+='<button class="bbtn pur" onclick="spinS()" '+(sSpin||!pool.length?'disabled':'')+' style="margin-top:12px">'+(pool.length===0?'모두 뽑았어요!':sSpin?'뽑는 중...':'뽑기!')+'</button>';
+  if(sHist.length){h+='<div style="margin-top:24px"><div style="font-size:12px;color:var(--dim);margin-bottom:8px">뽑기 기록</div><div class="htags">'+sHist.map(n=>'<span class="htag">'+n+'</span>').join('')+'</div><button onclick="S.sHist=[];S.sRes=null;renderAll()" style="background:none;border:1px solid var(--bg3);color:var(--dim);border-radius:8px;padding:4px 12px;font-size:11px;cursor:pointer;margin-top:8px">기록 초기화</button></div>'}
+  h+='</div>';el.innerHTML=h;
+}
+function spinS(){
+  const pool=S.sExcl?Array.from({length:S.sTotal},(_,i)=>i+1).filter(n=>!S.sHist.includes(n)):Array.from({length:S.sTotal},(_,i)=>i+1);
+  if(!pool.length||S.sSpin)return;S.sSpin=true;renderAll();
+  SFX.drumroll();
+  const tot=16+Math.floor(Math.random()*8);
+  let cnt=0;
+  function step(){
+    const n=pool[Math.floor(Math.random()*pool.length)];
+    const el=document.querySelector('.stnum');if(el){el.textContent=n;el.className='stnum spin'}
+    SFX.tick(cnt);
+    cnt++;
+    if(cnt>=tot){
+      const fn=pool[Math.floor(Math.random()*pool.length)];S.sRes=fn;S.sSpin=false;S.sHist.push(fn);
+      SFX.win();renderAll();
+    } else {
+      const delay=cnt<tot-6?60:cnt<tot-3?140:cnt<tot-1?280:450;
+      setTimeout(step,delay);
+    }
+  }
+  step();
+}
+
+// ===== MANAGE =====
+function rManage(){
+  const el=document.getElementById('v-manage');const{clips,mCat,mW}=S;const w=gW();
+  let f=clips;if(mCat)f=f.filter(c=>c.category===mCat);
+  if(mW==='watched')f=f.filter(c=>w.has(c.id));else if(mW==='unwatched')f=f.filter(c=>!w.has(c.id));
+
+  let h='<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:12px;color:var(--dim)">';
+  if(S.demo)h+='<span>🟡 데모 모드</span>';
+  else if(S.apiUrl){h+='<span>🟢 시트 연결됨</span><button onclick="loadClips()" style="background:none;border:1px solid var(--bg3);color:var(--dim);border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer">새로고침</button><button onclick="discSheet()" style="background:none;border:1px solid var(--bg3);color:var(--dim);border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer">연결 해제</button>'}
+  h+='</div>';
+
+  h+='<div class="aform"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><h3>➕ 클립 추가</h3><button class="fbtn sec" id="btog" onclick="togBulk()" style="font-size:12px;padding:4px 12px">대량 입력</button></div>';
+  h+='<div id="asng"><div class="frow"><input class="finp" id="a-url" placeholder="유튜브 URL 붙여넣기" onpaste="setTimeout(fetchM,100)"><button class="fbtn sec" onclick="fetchM()">제목·길이 가져오기</button></div><div class="frow"><input class="finp" id="a-ttl" placeholder="영상 제목 (자동으로 채워져요)"><input class="finp" id="a-dur" placeholder="길이 (자동입력)" style="max-width:120px"></div><div class="frow"><select class="fsel" id="a-cat">'+CATS.map(c=>'<option value="'+c.id+'">'+c.emoji+' '+c.name+'</option>').join('')+'</select><button class="fbtn pri" onclick="addC()">추가</button></div><div class="errmsg" id="a-err"></div></div>';
+  h+='<div id="ablk" class="hidden"><textarea class="finp" id="b-txt" rows="5" placeholder="유튜브 URL을 한 줄에 하나씩" style="resize:vertical;margin-bottom:8px;width:100%"></textarea><div class="frow"><span style="font-size:13px;color:var(--muted)">카테고리:</span><select class="fsel" id="b-cat">'+CATS.map(c=>'<option value="'+c.id+'">'+c.emoji+' '+c.name+'</option>').join('')+'</select><button class="fbtn pri" onclick="addB()">일괄 추가</button></div></div></div>';
+
+  h+='<div class="lctrls"><select class="fsel" onchange="S.mCat=this.value||null;renderAll()" style="font-size:12px;padding:6px 10px"><option value="">전체 카테고리</option>'+CATS.map(c=>'<option value="'+c.id+'"'+(mCat===c.id?' selected':'')+'>'+c.emoji+' '+c.name+'</option>').join('')+'</select>';
+  h+='<select class="fsel" onchange="S.mW=this.value;renderAll()" style="font-size:12px;padding:6px 10px"><option value="all"'+(mW==='all'?' selected':'')+'>전체</option><option value="unwatched"'+(mW==='unwatched'?' selected':'')+'>안 본 것만</option><option value="watched"'+(mW==='watched'?' selected':'')+'>본 것만</option></select>';
+  h+='<div style="flex:1"></div><button onclick="resetW()" style="background:none;border:1px solid var(--bg3);color:var(--dim);border-radius:8px;padding:6px 12px;font-size:11px;cursor:pointer">시청기록 전체 초기화</button><span style="font-size:12px;color:var(--dim)">'+f.length+'편</span></div>';
+
+  if(!f.length)h+='<div class="empty"><span class="em">📭</span>클립이 없어요.</div>';
+  else h+='<div style="display:flex;flex-direction:column;gap:8px">'+f.map(c=>rCard(c,{compact:true,del:true})).join('')+'</div>';
+  el.innerHTML=h;
+}
+
+let bulkOn=false;
+function togBulk(){bulkOn=!bulkOn;document.getElementById('asng').classList.toggle('hidden',bulkOn);document.getElementById('ablk').classList.toggle('hidden',!bulkOn);document.getElementById('btog').textContent=bulkOn?'단일 입력':'대량 입력'}
+
+async function fetchM(){
+  const url=document.getElementById('a-url').value.trim();const vid=exVid(url);const er=document.getElementById('a-err');
+  if(!vid){er.textContent='유효한 유튜브 URL이 아니에요';return}
+  er.innerHTML='<span class="lspin"></span>제목과 길이 가져오는 중...';
+  let gotTitle=false,gotDur=false;
+  // 1차: Apps Script meta 엔드포인트
+  try{
+    const apiBase=API_URL||S.apiUrl;
+    if(apiBase&&apiBase!=='demo'){
+      const r=await fetch(apiBase+'?action=meta&videoId='+vid);const d=await r.json();
+      if(d.title&&!d.clips){document.getElementById('a-ttl').value=d.title;gotTitle=true}
+      if(d.duration){document.getElementById('a-dur').value=d.duration;gotDur=true}
+      // d.clips가 있으면 구버전 Apps Script → fallback
+      if(d.clips){console.log('Apps Script 구버전 감지 → noembed fallback')}
+    }
+  }catch(e){console.log('meta endpoint error',e)}
+  // 2차 fallback: noembed (제목만)
+  if(!gotTitle){
+    try{
+      const r=await fetch('https://noembed.com/embed?url=https://www.youtube.com/watch?v='+vid);const d=await r.json();
+      if(d.title){document.getElementById('a-ttl').value=d.title;gotTitle=true}
+    }catch{}
+  }
+  // 결과 메시지
+  if(gotTitle&&gotDur){
+    er.innerHTML='<span style="color:var(--green)">✅ 제목 + 길이 자동 입력 완료!</span>';
+  } else if(gotTitle&&!gotDur){
+    er.innerHTML='✅ 제목 입력됨. <span style="color:var(--accent)">길이는 직접 입력해주세요.</span> <span style="font-size:11px;color:var(--dim)">(Apps Script 재배포 필요할 수 있음)</span>';
+  } else if(!gotTitle&&gotDur){
+    er.textContent='길이 입력됨. 제목을 직접 입력해주세요.';
+  } else {
+    er.textContent='정보를 가져올 수 없었어요. 직접 입력해주세요.';
+  }
+}
+
+async function addC(){
+  const url=document.getElementById('a-url').value.trim(),ttl=document.getElementById('a-ttl').value.trim(),dur=document.getElementById('a-dur').value.trim(),cat=document.getElementById('a-cat').value,er=document.getElementById('a-err');
+  const vid=exVid(url);if(!vid){er.textContent='유효한 유튜브 URL을 입력하세요';return}
+  if(S.clips.some(c=>c.videoId===vid)){er.textContent='이미 등록된 영상이에요!';return}
+  await apiPost({action:'add',clip:{id:uid(),url,videoId:vid,title:ttl||'제목 없음',duration:dur,category:cat}});
+  document.getElementById('a-url').value='';document.getElementById('a-ttl').value='';document.getElementById('a-dur').value='';er.textContent='';renderAll();
+}
+
+async function addB(){
+  const txt=document.getElementById('b-txt').value,cat=document.getElementById('b-cat').value;
+  const lines=txt.split('\n').map(l=>l.trim()).filter(Boolean);const nc=[];
+  for(const l of lines){const vid=exVid(l);if(vid&&!S.clips.some(c=>c.videoId===vid)&&!nc.some(c=>c.videoId===vid))nc.push({id:uid(),url:l,videoId:vid,title:'불러오는 중...',duration:'',category:cat})}
+  if(!nc.length)return;
+  await apiPost({action:'addBulk',clips:nc});document.getElementById('b-txt').value='';
+  for(const clip of nc){try{
+    const apiBase=API_URL||S.apiUrl;
+    if(apiBase&&apiBase!=='demo'){
+      const r=await fetch(apiBase+'?action=meta&videoId='+clip.videoId);const d=await r.json();
+      const fd=S.clips.find(c=>c.id===clip.id);
+      if(fd){
+        if(d.title)fd.title=d.title;
+        if(d.duration)fd.duration=d.duration;
+        fetch(apiBase,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'update',id:clip.id,title:d.title||fd.title,duration:d.duration||''}),redirect:'follow'}).catch(()=>{});
+      }
+    } else {
+      const r=await fetch('https://noembed.com/embed?url=https://www.youtube.com/watch?v='+clip.videoId);const d=await r.json();
+      if(d.title){const fd=S.clips.find(c=>c.id===clip.id);if(fd)fd.title=d.title}
+    }
+  }catch{}}
+  if(S.demo)saveDC();renderAll();
+}
+
+async function delClip(id){if(!confirm('이 클립을 삭제할까요?'))return;await apiPost({action:'delete',id});renderAll()}
+function resetW(){if(!confirm('모든 시청 기록을 초기화할까요?'))return;sW(new Set());renderAll()}
+
+// ===== NAV & INIT =====
+function switchV(v){S.view=v;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===v));document.querySelectorAll('.vp').forEach(p=>p.classList.toggle('hidden',p.id!=='v-'+v));renderAll()}
+function renderAll(){
+  const w=gW();document.getElementById('st-t').textContent=S.clips.length;document.getElementById('st-u').textContent=S.clips.filter(c=>!w.has(c.id)).length;
+  document.getElementById('setup').classList.toggle('hidden',!!(S.apiUrl||S.demo));
+  if(S.view==='theater')rTheater();else if(S.view==='pick')rPick();else if(S.view==='student')rStudent();else if(S.view==='manage')rManage();
+}
+document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchV(b.dataset.v)));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePlay()});
+if(S.apiUrl==='demo')S.demo=true;
+if(S.apiUrl)loadClips();else renderAll();
+</script>
+</body>
+</html>
