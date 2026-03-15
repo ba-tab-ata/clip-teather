@@ -273,54 +273,64 @@ function esc(s){const d=document.createElement('div');d.textContent=s;return d.i
 function cById(id){return S.clips.find(c=>c.id===id)}
 
 // API
-// 클립 데이터 정규화 (시트에서 읽어온 값 보정)
+// 클립 데이터 정규화 (시트에서 읽어온 값 + 캐시 값 보정)
 function normClip(c){
   c.id=String(c.id||'').trim();
   c.videoId=String(c.videoId||'').trim();
   c.title=String(c.title||'').trim()||'제목 없음';
   c.url=String(c.url||'').trim();
   c.category=String(c.category||'etc').trim().toLowerCase();
-  // duration 정규화
-  var d=c.duration;
-  if(!d||d==='undefined'||d==='null'){c.duration='';return c}
-  d=String(d).trim();
-  // 이미 정상 "M:SS" 또는 "H:MM:SS" 형식이면 그대로
-  if(d.match(/^\d{1,2}:\d{2}$/)){ c.duration=d; return c; }
-  // "H:MM:SS" → 시간이 0이면 "M:SS"로 줄이기
-  var hms=d.match(/^(\d{1,2}):(\d{2}):(\d{2})$/);
+  c.duration=cleanDuration(c.duration);
+  return c;
+}
+function cleanDuration(val){
+  if(!val||val==='undefined'||val==='null') return '';
+  var d=String(val).trim();
+  if(!d) return '';
+  // "M:SS" → 정상
+  if(d.match(/^\d{1,2}:\d{2}$/)) return d;
+  // "H:MM:SS" → 검증
+  var hms=d.match(/^(\d{1,3}):(\d{2}):(\d{2})$/);
   if(hms){
     var h=parseInt(hms[1]),m=parseInt(hms[2]),s=parseInt(hms[3]);
-    if(h===0) c.duration=m+':'+(s<10?'0':'')+s;
-    else c.duration=h+':'+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
-    return c;
+    var total=h*3600+m*60+s;
+    // 2시간 이상이면 타임존 깨진 값 → 비우기
+    // (교육 클립이 2시간 이상일 리 없음)
+    if(total>7200) return '';
+    if(h===0) return m+':'+(s<10?'0':'')+s;
+    return d;
   }
-  // "1899-12-29T..." ISO 날짜 문자열 (캐시에 남은 깨진 값)
+  // "1899-12-29T..." ISO 날짜 문자열 (캐시 잔여)
   if(d.match(/^\d{4}-\d{2}-\d{2}/)){
     try{
       var dt=new Date(d);
       var ts=dt.getUTCHours()*3600+dt.getUTCMinutes()*60+dt.getUTCSeconds();
-      if(ts>0){
+      if(ts>0&&ts<7200){
         var hh=Math.floor(ts/3600),mm=Math.floor((ts%3600)/60),ss=ts%60;
-        c.duration=hh>0?hh+':'+(mm<10?'0':'')+mm+':'+(ss<10?'0':'')+ss:mm+':'+(ss<10?'0':'')+ss;
-      } else c.duration='';
-    }catch{c.duration=''}
-    return c;
+        return hh>0?hh+':'+(mm<10?'0':'')+mm+':'+(ss<10?'0':'')+ss:mm+':'+(ss<10?'0':'')+ss;
+      }
+    }catch{}
+    return '';
   }
-  // 숫자만 → 초로 간주
+  // 숫자만 → 초
   if(d.match(/^\d+$/)){
-    var sec=parseInt(d);if(sec>0&&sec<36000){
-      var hh2=Math.floor(sec/3600),mm2=Math.floor((sec%3600)/60),ss2=sec%60;
-      c.duration=hh2>0?hh2+':'+(mm2<10?'0':'')+mm2+':'+(ss2<10?'0':'')+ss2:mm2+':'+(ss2<10?'0':'')+ss2;
-    } else c.duration='';
-    return c;
+    var sec=parseInt(d);
+    if(sec>0&&sec<7200){
+      var h2=Math.floor(sec/3600),m2=Math.floor((sec%3600)/60),s2=sec%60;
+      return h2>0?h2+':'+(m2<10?'0':'')+m2+':'+(s2<10?'0':'')+s2:m2+':'+(s2<10?'0':'')+s2;
+    }
+    return '';
   }
-  c.duration=d;
-  return c;
+  return d;
 }
-// 캐시 키
-const CACHE_KEY='ct_cache';
+
+// 캐시 (버전 관리: 코드 업데이트 시 오래된 캐시 자동 무효화)
+const CACHE_VER='v3';
+const CACHE_KEY='ct_cache_'+CACHE_VER;
 function saveCache(clips){try{localStorage.setItem(CACHE_KEY,JSON.stringify(clips))}catch{}}
 function loadCache(){try{return JSON.parse(localStorage.getItem(CACHE_KEY)||'[]').map(normClip)}catch{return[]}}
+// 이전 버전 캐시 삭제
+(function(){try{var keys=['ct_cache','ct_cache_v1','ct_cache_v2'];keys.forEach(function(k){if(k!==CACHE_KEY)localStorage.removeItem(k)})}catch{}})()
 
 async function apiGet(){
   if(!S.apiUrl)return[];
