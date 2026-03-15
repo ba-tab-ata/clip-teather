@@ -120,14 +120,6 @@ button { cursor:pointer; }
 .errmsg { color:var(--red); font-size:13px; margin-top:4px; }
 .lctrls { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
 
-.pov-wrap { position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.92); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
-.pv-inner { width:100%; max-width:900px; }
-.pv-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
-.pv-ttl { color:var(--accent); font-size:16px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; margin-right:16px; }
-.pv-close { background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.3); color:var(--accent); border-radius:8px; padding:6px 16px; font-size:13px; font-weight:600; }
-.pv-frame { position:relative; padding-bottom:56.25%; border-radius:12px; overflow:hidden; box-shadow:0 0 60px rgba(245,158,11,.12); }
-.pv-frame iframe { position:absolute; inset:0; width:100%; height:100%; border:none; }
-
 .empty { text-align:center; padding:60px 20px; color:var(--dim); }
 .empty .em { font-size:48px; display:block; margin-bottom:12px; }
 .hidden { display:none !important; }
@@ -173,18 +165,8 @@ button { cursor:pointer; }
   <div id="v-manage" class="vp hidden"></div>
 </div>
 
-<div class="pov-wrap hidden" id="player" onclick="closePlay()">
-  <div class="pv-inner" onclick="event.stopPropagation()">
-    <div class="pv-hdr">
-      <div class="pv-ttl" id="pv-ttl"></div>
-      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
-        <a id="pv-yt-link" href="#" target="_blank" style="background:rgba(255,0,0,.2);border:1px solid rgba(255,0,0,.4);color:#f66;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap">▶ YouTube</a>
-        <button class="pv-close" onclick="closePlay()">닫기 ✕</button>
-      </div>
-    </div>
-    <div class="pv-frame"><iframe id="pv-ifr" allow="autoplay; encrypted-media; fullscreen" allowfullscreen referrerpolicy="no-referrer"></iframe></div>
-  </div>
-</div>
+
+
 
 <script>
 // ╔══════════════════════════════════════════════════════════╗
@@ -194,7 +176,7 @@ button { cursor:pointer; }
 // ║  아래 '' 안에 Apps Script 웹 앱 URL을 붙여넣으세요.      ║
 // ║  비워두면 앱에서 직접 입력하는 화면이 나옵니다.          ║
 // ║                                                          ║
-const API_URL = 'https://script.google.com/macros/s/AKfycby5VB733hWuV8QWBSmkVpvgEB_IaX4hUJJDtcwOoKpEIcsi5x1-or6kPVTkLgKvykuD4w/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbw13mhhiyc5nfJzVrKSX_pMqzqSqOtODnh__Xgs2vpoNqc7fl2LcOh69m7-x0wqEpx1Lw/exec';
 // ║                                                          ║
 // ║  예시:                                                   ║
 // ║  const API_URL = 'https://script.google.com/macros/s/AKf...긴문자열.../exec'; ║
@@ -298,16 +280,38 @@ function normClip(c){
   c.title=String(c.title||'').trim()||'제목 없음';
   c.url=String(c.url||'').trim();
   c.category=String(c.category||'etc').trim().toLowerCase();
-  // duration: Date 객체나 이상한 값 보정
+  // duration 정규화
   var d=c.duration;
   if(!d||d==='undefined'||d==='null'){c.duration='';return c}
   d=String(d).trim();
-  // "1899-12-29T..." 같은 깨진 날짜 → 시간 추출 시도
+  // 이미 정상 "M:SS" 또는 "H:MM:SS" 형식이면 그대로
+  if(d.match(/^\d{1,2}:\d{2}$/)){ c.duration=d; return c; }
+  // "H:MM:SS" → 시간이 0이면 "M:SS"로 줄이기
+  var hms=d.match(/^(\d{1,2}):(\d{2}):(\d{2})$/);
+  if(hms){
+    var h=parseInt(hms[1]),m=parseInt(hms[2]),s=parseInt(hms[3]);
+    if(h===0) c.duration=m+':'+(s<10?'0':'')+s;
+    else c.duration=h+':'+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+    return c;
+  }
+  // "1899-12-29T..." ISO 날짜 문자열 (캐시에 남은 깨진 값)
   if(d.match(/^\d{4}-\d{2}-\d{2}/)){
-    try{var dt=new Date(d);var h=dt.getUTCHours(),m=dt.getUTCMinutes(),s=dt.getUTCSeconds();
-      if(h>0)c.duration=h+':'+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
-      else c.duration=m+':'+(s<10?'0':'')+s;
+    try{
+      var dt=new Date(d);
+      var ts=dt.getUTCHours()*3600+dt.getUTCMinutes()*60+dt.getUTCSeconds();
+      if(ts>0){
+        var hh=Math.floor(ts/3600),mm=Math.floor((ts%3600)/60),ss=ts%60;
+        c.duration=hh>0?hh+':'+(mm<10?'0':'')+mm+':'+(ss<10?'0':'')+ss:mm+':'+(ss<10?'0':'')+ss;
+      } else c.duration='';
     }catch{c.duration=''}
+    return c;
+  }
+  // 숫자만 → 초로 간주
+  if(d.match(/^\d+$/)){
+    var sec=parseInt(d);if(sec>0&&sec<36000){
+      var hh2=Math.floor(sec/3600),mm2=Math.floor((sec%3600)/60),ss2=sec%60;
+      c.duration=hh2>0?hh2+':'+(mm2<10?'0':'')+mm2+':'+(ss2<10?'0':'')+ss2:mm2+':'+(ss2<10?'0':'')+ss2;
+    } else c.duration='';
     return c;
   }
   c.duration=d;
@@ -385,36 +389,17 @@ function saveUrl(){const u=document.getElementById('api-inp').value.trim();if(!u
 function enterDemo(){S.demo=true;S.apiUrl='demo';localStorage.setItem('ct_api','demo');loadClips()}
 function discSheet(){if(!confirm('시트 연결을 해제할까요?'))return;S.apiUrl='';S.demo=false;localStorage.removeItem('ct_api');S.clips=[];renderAll()}
 
-// Player
-let _playingClip=null;
-const isLocal=location.protocol==='file:';
+// Player — 항상 팝업 윈도우로 재생
 function playC(c){
-  _playingClip=c;
-  if(isLocal){
-    // 로컬 파일 → 팝업 윈도우로 유튜브 재생 (항상 작동!)
-    const sw=Math.round(screen.width*0.75);
-    const sh=Math.round(sw*9/16)+60;
-    const sl=Math.round((screen.width-sw)/2);
-    const st=Math.round((screen.height-sh)/2);
-    window.open(
-      'https://www.youtube.com/watch?v='+c.videoId,
-      'cliptheater',
-      'width='+sw+',height='+sh+',left='+sl+',top='+st+',toolbar=no,menubar=no,location=no'
-    );
-    return;
-  }
-  // 웹 서버 → 오버레이 임베드
-  document.getElementById('pv-ttl').textContent=c.title;
-  document.getElementById('pv-yt-link').href='https://www.youtube.com/watch?v='+c.videoId;
-  document.getElementById('pv-ifr').style.display='block';
-  document.getElementById('pv-ifr').src='https://www.youtube-nocookie.com/embed/'+c.videoId+'?autoplay=1&rel=0';
-  document.getElementById('player').classList.remove('hidden');
-  document.body.style.overflow='hidden';
-}
-function closePlay(){
-  document.getElementById('pv-ifr').src='';
-  document.getElementById('player').classList.add('hidden');
-  document.body.style.overflow='';_playingClip=null;
+  const sw=Math.round(screen.width*0.78);
+  const sh=Math.round(sw*9/16)+60;
+  const sl=Math.round((screen.width-sw)/2);
+  const st=Math.round((screen.height-sh)/2);
+  window.open(
+    'https://www.youtube.com/watch?v='+c.videoId,
+    'cliptheater',
+    'width='+sw+',height='+sh+',left='+sl+',top='+st+',toolbar=no,menubar=no,location=no'
+  );
 }
 
 // Render helpers
@@ -632,7 +617,6 @@ function renderAll(){
   if(S.view==='theater')rTheater();else if(S.view==='pick')rPick();else if(S.view==='student')rStudent();else if(S.view==='manage')rManage();
 }
 document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchV(b.dataset.v)));
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closePlay()});
 if(S.apiUrl==='demo')S.demo=true;
 if(S.apiUrl)loadClips();else renderAll();
 </script>
