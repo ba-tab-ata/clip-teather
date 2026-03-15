@@ -85,6 +85,18 @@ button { cursor:pointer; }
 .clip-cpt .info-right .btn-check.on { opacity:1; }
 .clip-cpt .info-right .btn-del { opacity:.35; }
 .clip-cpt .info-right .btn-del:hover { opacity:.8; background:rgba(244,63,94,.12); border-color:rgba(244,63,94,.3); }
+.clip-cpt .info-right .btn-edit { opacity:.35; font-size:14px; }
+.clip-cpt .info-right .btn-edit:hover { opacity:.8; background:rgba(245,158,11,.12); border-color:rgba(245,158,11,.3); }
+
+.edit-form { background:var(--bg2); border:1.5px solid var(--accent); border-radius:10px; padding:14px; margin-bottom:2px; }
+.edit-form .ef-row { display:flex; gap:6px; margin-bottom:6px; align-items:center; flex-wrap:wrap; }
+.edit-form .ef-label { font-size:11px; color:var(--dim); min-width:50px; flex-shrink:0; }
+.edit-form .ef-inp { background:var(--bg); border:1px solid var(--bg3); border-radius:6px; color:var(--text); padding:7px 10px; font-size:13px; flex:1; min-width:0; }
+.edit-form .ef-inp:focus { border-color:var(--accent); outline:none; }
+.edit-form .ef-sel { background:var(--bg); border:1px solid var(--bg3); border-radius:6px; color:var(--text); padding:7px 10px; font-size:13px; }
+.edit-form .ef-btns { display:flex; gap:6px; margin-top:8px; justify-content:flex-end; }
+.edit-form .ef-save { background:var(--accent); border:none; color:#000; border-radius:6px; padding:7px 16px; font-size:13px; font-weight:700; cursor:pointer; }
+.edit-form .ef-cancel { background:var(--bg3); border:none; color:var(--muted); border-radius:6px; padding:7px 16px; font-size:13px; cursor:pointer; }
 
 .slot-box { background:linear-gradient(180deg,#1a0a2e,#16213e); border:2px solid rgba(245,158,11,.2); border-radius:20px; padding:40px 20px; text-align:center; box-shadow:0 0 60px rgba(245,158,11,.06),inset 0 0 60px rgba(0,0,0,.3); margin-bottom:24px; }
 .slot-title { font-family:'Black Han Sans',sans-serif; font-size:22px; color:var(--accent); margin-bottom:24px; text-shadow:0 0 20px rgba(245,158,11,.25); }
@@ -243,6 +255,7 @@ const CATS=[
   {id:'nature',name:'자연',emoji:'🌿',color:'#22C55E'},
   {id:'tech',name:'기술',emoji:'🤖',color:'#6366F1'},
   {id:'fun',name:'재미',emoji:'😂',color:'#F97316'},
+  {id:'food',name:'음식',emoji:'🍜',color:'#FB923C'},
   {id:'etc',name:'기타',emoji:'📦',color:'#78716C'},
 ];
 const DURS=[
@@ -256,7 +269,7 @@ const DURS=[
 let S={clips:[],view:'theater',selCat:null,selDur:'all',apiUrl:API_URL||localStorage.getItem('ct_api')||'',demo:false,loading:false,
   pCat:null,pDur:'all',pRes:null,pSpin:false,
   sTotal:parseInt(localStorage.getItem('ct_stotal')||'30'),sRes:null,sSpin:false,sHist:[],sExcl:true,
-  mCat:null,mW:'all'};
+  mCat:null,mW:'all',editId:null};
 
 function gW(){try{return new Set(JSON.parse(localStorage.getItem('ct_w')||'[]'))}catch{return new Set()}}
 function sW(s){localStorage.setItem('ct_w',JSON.stringify([...s]))}
@@ -418,7 +431,19 @@ function rDurBar(cur,fn){return'<div class="dur-bar">'+DURS.map(f=>'<button clas
 function rCard(c,opts={}){
   const cat=gC(c.category),w=iW(c.id),wc=w?' watched':'';
   if(opts.compact){
-    return '<div class="clip-cpt'+wc+'"><div class="tsm" onclick="playC(cById(\''+c.id+'\'))"><img src="'+th(c.videoId)+'" onerror="this.style.display=\'none\'">'+(c.duration?'<span class="dbadge">'+esc(c.duration)+'</span>':'')+(w?'<span class="wbadge">시청완료 ✓</span>':'')+'</div><div class="info"><div class="ttl">'+esc(c.title||'제목 없음')+'</div><div class="info-row"><div class="info-left"><span class="ctag" style="background:'+cat.color+'22;color:'+cat.color+'">'+cat.emoji+' '+cat.name+'</span>'+(c.duration?'<span style="font-size:11px;color:var(--dim)">'+dIcon(c.duration)+' '+esc(c.duration)+'</span>':'')+'</div><div class="info-right"><button class="btn-check'+(w?' on':'')+'" onclick="tW(\''+c.id+'\')" title="'+(w?'안 본 것으로':'본 것으로')+'">'+(w?'✅':'⬜')+'</button>'+(opts.del?'<button class="btn-del" onclick="delClip(\''+c.id+'\')" title="삭제">🗑️</button>':'')+'</div></div></div></div>';
+    // 수정 모드
+    if(opts.del && S.editId===c.id){
+      return '<div class="edit-form" data-id="'+c.id+'">'+
+        '<div style="display:flex;gap:10px;align-items:start">'+
+        '<div class="tsm" style="width:120px;min-height:68px;flex-shrink:0;border-radius:6px;overflow:hidden;background:var(--bg)"><img src="'+th(c.videoId)+'" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'"></div>'+
+        '<div style="flex:1;min-width:0">'+
+        '<div class="ef-row"><span class="ef-label">제목</span><input class="ef-inp" id="ed-ttl" value="'+esc(c.title)+'"></div>'+
+        '<div class="ef-row"><span class="ef-label">길이</span><input class="ef-inp" id="ed-dur" value="'+esc(c.duration)+'" placeholder="예: 5:30" style="max-width:100px"><span class="ef-label" style="min-width:auto">분류</span><select class="ef-sel" id="ed-cat">'+CATS.map(ct=>'<option value="'+ct.id+'"'+(ct.id===c.category?' selected':'')+'>'+ct.emoji+' '+ct.name+'</option>').join('')+'</select></div>'+
+        '<div class="ef-btns"><button class="ef-cancel" onclick="S.editId=null;renderAll()">취소</button><button class="ef-save" onclick="saveEdit(\''+c.id+'\')">저장</button></div>'+
+        '</div></div></div>';
+    }
+    // 일반 모드
+    return '<div class="clip-cpt'+wc+'"><div class="tsm" onclick="playC(cById(\''+c.id+'\'))"><img src="'+th(c.videoId)+'" onerror="this.style.display=\'none\'">'+(c.duration?'<span class="dbadge">'+esc(c.duration)+'</span>':'')+(w?'<span class="wbadge">시청완료 ✓</span>':'')+'</div><div class="info"><div class="ttl">'+esc(c.title||'제목 없음')+'</div><div class="info-row"><div class="info-left"><span class="ctag" style="background:'+cat.color+'22;color:'+cat.color+'">'+cat.emoji+' '+cat.name+'</span>'+(c.duration?'<span style="font-size:11px;color:var(--dim)">'+dIcon(c.duration)+' '+esc(c.duration)+'</span>':'')+'</div><div class="info-right">'+(opts.del?'<button class="btn-edit" onclick="S.editId=\''+c.id+'\';renderAll()" title="수정">✏️</button>':'')+'<button class="btn-check'+(w?' on':'')+'" onclick="tW(\''+c.id+'\')" title="'+(w?'안 본 것으로':'본 것으로')+'">'+(w?'✅':'⬜')+'</button>'+(opts.del?'<button class="btn-del" onclick="delClip(\''+c.id+'\')" title="삭제">🗑️</button>':'')+'</div></div></div></div>';
   }
   return '<div class="clip-card'+wc+'"><div class="thumb" onclick="playC(cById(\''+c.id+'\'))"><img src="'+th(c.videoId)+'" onerror="this.style.display=\'none\'"><div class="pov">▶️</div>'+(c.duration?'<span class="dbadge">'+esc(c.duration)+'</span>':'')+(w?'<span class="wbadge">시청완료 ✓</span>':'')+'</div><div class="info"><div class="ttl">'+esc(c.title||'제목 없음')+'</div><div class="meta"><span class="ctag" style="background:'+cat.color+'22;color:'+cat.color+'">'+cat.emoji+' '+cat.name+'</span>'+(c.duration?'<span style="font-size:11px;color:var(--dim);margin-left:4px">'+dIcon(c.duration)+'</span>':'')+'<div class="acts" style="margin-left:auto"><button onclick="tW(\''+c.id+'\')">'+(w?'✅':'⬜')+'</button></div></div></div></div>';
 }
@@ -617,6 +642,28 @@ async function addB(){
 }
 
 async function delClip(id){if(!confirm('이 클립을 삭제할까요?'))return;await apiPost({action:'delete',id});renderAll()}
+
+async function saveEdit(id){
+  const ttl=document.getElementById('ed-ttl').value.trim();
+  const dur=document.getElementById('ed-dur').value.trim();
+  const cat=document.getElementById('ed-cat').value;
+  if(!ttl){alert('제목을 입력하세요');return}
+  // 로컬 즉시 반영
+  const clip=S.clips.find(c=>c.id===id);
+  if(clip){clip.title=ttl;clip.duration=dur;clip.category=cat}
+  S.editId=null;
+  saveCache(S.clips);
+  renderAll();
+  // 서버 업데이트 (백그라운드)
+  const apiBase=API_URL||S.apiUrl;
+  if(apiBase&&apiBase!=='demo'){
+    try{
+      document.getElementById('sync-ind').classList.remove('hidden');
+      await fetch(apiBase,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'update',id:id,title:ttl,duration:dur,category:cat}),redirect:'follow'});
+      document.getElementById('sync-ind').classList.add('hidden');
+    }catch(e){console.error(e);document.getElementById('sync-ind').classList.add('hidden')}
+  } else if(S.demo){saveDC()}
+}
 function resetW(){if(!confirm('모든 시청 기록을 초기화할까요?'))return;sW(new Set());renderAll()}
 
 // ===== NAV & INIT =====
